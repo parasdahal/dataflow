@@ -4,7 +4,8 @@
   "description": "",
   "main": "script.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "budo index.js:bundle.js --live"
   },
   "author": "",
   "license": "ISC",
@@ -13,6 +14,22 @@
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
     "babel-register": "^6.26.0",
-    "dotenv": "^6.0.0"
+    "budo": "^11.3.2",
+    "dotenv": "^6.0.0",
+    "glslify": "^6.3.1"
+  },
+  "dependencies": {
+    "browserify-fs": "^1.0.0",
+    "d3": "^5.7.0",
+    "d3-queue": "^3.0.7",
+    "nepal-geojson": "^2.4.2",
+    "random-points-on-polygon": "0.0.4",
+    "regl": "^1.3.7",
+    "turf": "^3.0.14"
+  },
+  "browserify": {
+    "transform": [
+      "glslify"
+    ]
   }
 }
