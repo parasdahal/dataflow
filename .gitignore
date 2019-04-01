@@ -4,8 +4,12 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.DS_Store
 
-data/
+*.csv
+*.geojson
+
+.data
 
 # Runtime data
 pids
