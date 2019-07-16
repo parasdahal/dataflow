@@ -12,19 +12,11 @@ const {
 const d3 = require('d3');
 
 let container;
-let camera, renderer;
+let camera, renderer, controls;
 let scene, mesh, geometry, vertices;
 let points;
 let width, height;
 let data;
-
-var userOpts	= {
-	range		: 800,
-	duration	: 2500,
-	delay		: 200,
-	easing		: 'Elastic.EaseInOut'
-};
-
 
 function createCamera() {
 
@@ -36,19 +28,9 @@ function createCamera() {
 
     camera.position.set(0, 0, 800);
 
-    const controls = new OrbitControls(camera, window);
+    controls = new OrbitControls(camera, window);
     controls.target.set(0, 5, 0);
     controls.update();
-
-}
-
-function loadLayout() {
-
-
-    // loadData('./data/data_geo.csv').then((data) => {
-
-        
-    // });    
 
 }
 
@@ -56,39 +38,35 @@ function createMesh() {
 
     geometry = new THREE.BufferGeometry();
     var sprite = new THREE.TextureLoader().load('https://blog.fastforwardlabs.com/images/2018/02/circle_aa-1518730700478.png');
+    
+    points = d3.range(data.length).map(d => ({}));
 
-    loadData('./data/data_geo.csv').then((d) => {
-        data = d;
-        let numPoints = data.length;
+    // let vertices = geoLayout(points, width, height, data);
 
-        points = d3.range(numPoints).map(d => ({}));
+    // let vertices = barsLayout(points, width, height, data);
+    vertices = geoLayout(points, width, height, data);
+    vertices2 = barsLayout(points, width, height, data);
 
-        // let vertices = geoLayout(points, width, height, data);
+    geometry.addAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
-        // let vertices = barsLayout(points, width, height, data);
-        vertices = geoLayout(points, width, height, data);
+    // Orientation of the layout.
+    geometry.rotateZ(180 * (Math.PI / 180));
+    geometry.rotateY(180 * (Math.PI / 180));
+    geometry.translate(-350, 200, 0)
 
-        geometry.addAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    var material = new THREE.PointsMaterial({
+        size: 2,
+        sizeAttenuation: false,
+        map: sprite,
+        alphaTest: 0.5,
+        transparent: true
+    });
 
-        // Orientation of the layout.
-        geometry.rotateZ(180 * (Math.PI / 180));
-        geometry.rotateY(180 * (Math.PI / 180));
-        geometry.translate(-350, 200, 0)
+    material.color.setHSL(1.0, 0.3, 0.7);
+    
+    mesh = new THREE.Points(geometry, material);
 
-        var material = new THREE.PointsMaterial({
-            size: 2,
-            sizeAttenuation: false,
-            map: sprite,
-            alphaTest: 0.5,
-            transparent: true
-        });
-
-        material.color.setHSL(1.0, 0.3, 0.7);
-        mesh = new THREE.Points(geometry, material);
-
-        scene.add(mesh);
-
-    })
+    scene.add(mesh);
 
 }
 
@@ -106,24 +84,34 @@ function createLight() {
 }
 
 function init() {
+
     container = document.querySelector('#scene-container');
     width = window.innerWidth - 10;
     height = window.innerHeight - 10;
 
-    scene = new THREE.Scene();
-    // scene.fog = new THREE.FogExp2(0x000000, 0.001);
-    createCamera()
-    createLight()
-    createMesh()
-    setupTween()
-    createRenderer()
-    camera.lookAt(scene.position)
-    renderer.setAnimationLoop(() => {
-        // controls.update();
-        update();
-        render();
-        TWEEN.update();
+    loadData('./data/data_geo.csv').then((csv) => {
+        
+        data = csv;
+        scene = new THREE.Scene();
+        // scene.fog = new THREE.FogExp2(0x000000, 0.001);
+        createCamera()
+        createLight()
+        createMesh()
+        
+        createRenderer()
+        setupTween()
+        
+        renderer.setAnimationLoop(() => {
+            controls.update();
+            update();
+            render();
+            TWEEN.update();
+
+        });
+
     });
+
+    
 }
 
 function update() {
@@ -143,73 +131,48 @@ function render() {
 
 init();
 
-// var interval = setInterval(function() {
-//     setPoints();
-// }, 5000)
 
-function setPoints() {
-
-    var positions = mesh.geometry.attributes.position.array;
-
-    
-    vertices = barsLayout(points, width, height, data);
-
-    let steps = data.length;
-    let idx = 0;
-    for ( var i =0; i <steps; i ++ ) {
-            positions[idx] = vertices[idx]
-            positions[idx+1] = vertices[idx+1]
-            positions[idx+2] = vertices[idx+2]
-            idx += 3;
-    }
-    geometry.rotateZ(180 * (Math.PI / 180));
-    geometry.rotateY(180 * (Math.PI / 180));
-    geometry.translate(-350, 200, 0)
-
-    mesh.geometry.attributes.position.needsUpdate = true;   
-    mesh.geometry.setDrawRange( 0, data.length);  
-    renderer.render(scene, camera);
-
-}
 function setupTween()
 {	
+    var userOpts = {
+        duration	: 2500,
+        delay		: 200,
+    };
+    
 	var update	= function(){
-		geometry.position.x = current.x;
-	}
-	var current	= { x: -userOpts.range };
-// remove previous tweens if needed
 
-	TWEEN.removeAll();
-	
-// convert the string from dat-gui into tween.js functions
+        geometry.addAttribute('position', new THREE.Float32BufferAttribute(current, 3));
+        geometry.rotateZ(180 * (Math.PI / 180));
+        geometry.rotateY(180 * (Math.PI / 180));
+        geometry.translate(-350, 200, 0)    
+    }
 
-	var easing	= TWEEN.Easing['Elastic']['EaseInOut'];
-// ¶
-// build the tween to go ahead
-
+    TWEEN.removeAll();
+    
+    // Copy the current vertices to create new target that wil
+    // be modified by tween.
+    var current = vertices.slice();
+    
 	var tweenHead	= new TWEEN.Tween(current)
-		.to({x: +userOpts.range}, userOpts.duration)
+        .to(vertices2, userOpts.duration)
 		.delay(userOpts.delay)
-		.easing(easing)
-		.onUpdate(update);
-// ¶
-// build the tween to go backward
-
+		.easing(TWEEN.Easing.Quadratic.In)
+        .onUpdate(update);
+        
 	var tweenBack	= new TWEEN.Tween(current)
-		.to({x: -userOpts.range}, userOpts.duration)
+        .to(vertices, userOpts.duration)
 		.delay(userOpts.delay)
-		.easing(easing)
-		.onUpdate(update);
-// ¶
-// after tweenHead do tweenBack
-
+		.easing(TWEEN.Easing.Quadratic.Out)
+        .onUpdate(update);
+        
 	tweenHead.chain(tweenBack);
-// ¶
-// after tweenBack do tweenHead, so it is cycling
-
 	tweenBack.chain(tweenHead);
-// ¶
-// start the first
+    
+    tweenHead.start();
 
-	tweenHead.start();
+    // var timeline = new TWEEN.Timeline(); //create the Timeline
+    // timeline.addTween(tweenHead, tweenBack); // add some tweens
+    // timeline.setPaused(false); // pause all tweens 
+    // // timeline.setPosition(300); // set position on all tweens ...
+    // timeline.start();
 }
