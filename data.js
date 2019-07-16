@@ -159,8 +159,99 @@ function barsLayout(points, width, height, csvData) {
 
 }
 
+function gridLayout(points,width,height,csvData){
+    
+    var pointWidth = width / 400;
+    var pointMargin = 3;
+    
+    // Create a nested object by category and filter.
+    // Reference: https://github.com/d3/d3-collection#nest
+    var byCategories = d3.nest().key(function (d) {
+        return 'aaa';
+    }).entries(csvData);
+    
+    /* Calculate the bar margin and width */
+    var binMargin = pointWidth * 10;
+    var numBins = byCategories.length;
+    var minBinWidth = width / (numBins * 1.5);
+    var totalExtraWidth = width - binMargin * (numBins - 1) - minBinWidth * numBins;
+
+    /* Calculate bar width and return array for each -- more data, thicker bar */
+    var binWidths = byCategories.map(function (d) {
+        return minBinWidth
+    });
+
+    // Keep track of points and bin width from left.
+    var increment = pointWidth + pointMargin;
+    var cumulativeBinWidth = totalExtraWidth/2;
+    
+    // Calculate bin widths and positions.
+    var binsArray = binWidths.map(function (binWidth, i) {
+        var bin = {
+            category: byCategories[i].key,
+            binWidth: binWidth,
+            binStart: cumulativeBinWidth + i * binMargin, // position of bin start
+            binCount: 0,
+            binCols: Math.floor(binWidth / increment) // num of cols reqd for the binns
+        };
+        cumulativeBinWidth += binWidth - 1;
+        return bin
+    });
+
+    // nest the above bin array for each category.
+    var bins = d3.nest().key(function (d) {
+        return d.category
+    }).rollup(function (d) {
+        return d[0]
+    }).object(binsArray); 
+
+    // colorData(points, csvData, 0);
+    // Iterate over data points.
+    
+    var arrangement = points.map(function (d, i) {
+
+        // Get continet of the data point, and it's bin information.
+        var category = 'aaa';
+        var bin = bins[category];
+
+        if (!bin) {
+            return {
+                x: d.x,
+                y: d.y,
+                color: [0, 0, 0]
+            }
+        }
+        // Get bin's display related variables.
+        var binWidth = bin.binWidth;
+        var binCount = bin.binCount;
+        var binStart = bin.binStart;
+        var binCols = bin.binCols;
+        var row = Math.floor(binCount / binCols);
+        var col = binCount % binCols;
+        var x = binStart + col * increment;
+        var y = -row * increment + height;
+        bin.binCount += 1;
+        return {
+            x: x,
+            y: y,
+            color: d.color
+        }
+    });
+    let vertices = [];
+    let y_offset = height/5.0;
+    let x_offset = width/5.0;
+    // Apply x,y and color data for each point.
+    arrangement.forEach(function (d, i) {
+        Object.assign(points[i], d)
+        vertices.push(d.x - x_offset, d.y - y_offset, 0);
+    });
+    return vertices;
+    
+}
+
 module.exports = {
     geoLayout: geoLayout,
     loadData: loadData,
-    barsLayout: barsLayout
+    barsLayout: barsLayout,
+    gridLayout: gridLayout
 }

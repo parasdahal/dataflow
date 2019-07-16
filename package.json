@@ -11,6 +11,7 @@
   "license": "ISC",
   "devDependencies": {
     "babel-cli": "^6.26.0",
+    "babel-core": "^7.0.0-bridge.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-2": "^6.24.1",
     "babel-register": "^6.26.0",
@@ -19,12 +20,18 @@
     "glslify": "^6.3.1"
   },
   "dependencies": {
+    "@babel/cli": "^7.5.0",
+    "@babel/core": "^7.5.4",
+    "@babel/preset-env": "^7.5.4",
     "@tweenjs/tween.js": "^17.4.0",
+    "babel-preset-env": "^1.7.0",
+    "babelify": "^8.0.0",
     "browserify-fs": "^1.0.0",
     "canvas-fit": "^1.5.0",
     "d3": "^5.7.0",
     "d3-queue": "^3.0.7",
     "glsl-easings": "^1.0.0",
+    "gsap": "^2.1.3",
     "nepal-geojson": "^2.4.2",
     "random-points-on-polygon": "0.0.4",
     "regl": "^1.3.7",

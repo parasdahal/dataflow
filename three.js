@@ -1,13 +1,14 @@
 const THREE = require('THREE');
 const TWEEN = require('@tweenjs/tween.js');
 const OrbitControls = require('three-orbitcontrols')
+
 const {
     loadData,
     wrapColorScale
 } = require('./flow.js');
 const {
     geoLayout,
-    barsLayout
+    barsLayout,gridLayout
 } = require('./data.js')
 const d3 = require('d3');
 
@@ -46,6 +47,7 @@ function createMesh() {
     // let vertices = barsLayout(points, width, height, data);
     vertices = geoLayout(points, width, height, data);
     vertices2 = barsLayout(points, width, height, data);
+    vertices3 = gridLayout(points, width, height, data);
 
     geometry.addAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
@@ -110,8 +112,6 @@ function init() {
         });
 
     });
-
-    
 }
 
 function update() {
@@ -148,7 +148,7 @@ function setupTween()
     }
 
     TWEEN.removeAll();
-    
+
     // Copy the current vertices to create new target that wil
     // be modified by tween.
     var current = vertices.slice();
@@ -160,12 +160,19 @@ function setupTween()
         .onUpdate(update);
         
 	var tweenBack	= new TWEEN.Tween(current)
+        .to(vertices3, userOpts.duration)
+		.delay(userOpts.delay)
+		.easing(TWEEN.Easing.Quadratic.Out)
+        .onUpdate(update);
+
+    var tweenBack2	= new TWEEN.Tween(current)
         .to(vertices, userOpts.duration)
 		.delay(userOpts.delay)
 		.easing(TWEEN.Easing.Quadratic.Out)
         .onUpdate(update);
         
-	tweenHead.chain(tweenBack);
+    tweenHead.chain(tweenBack2);
+    tweenBack2.chain(tweenBack);
 	tweenBack.chain(tweenHead);
     
     tweenHead.start();
