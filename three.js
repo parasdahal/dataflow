@@ -14,7 +14,7 @@ const d3 = require('d3');
 
 let container;
 let camera, renderer, controls;
-let scene, mesh, geometry, vertices;
+let scene, mesh, geometry, material;
 let points;
 let width, height;
 let data;
@@ -24,8 +24,8 @@ function createCamera() {
     camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 1, 2000);
 
     // Helper for viewing camera frustrum.
-    var camhelper = new THREE.CameraHelper(camera);
-    scene.add(camhelper);
+    // var camhelper = new THREE.CameraHelper(camera);
+    // scene.add(camhelper);
 
     camera.position.set(0, 0, 800);
 
@@ -45,27 +45,27 @@ function createMesh() {
     // let vertices = geoLayout(points, width, height, data);
 
     // let vertices = barsLayout(points, width, height, data);
-    vertices = geoLayout(points, width, height, data);
-    vertices2 = barsLayout(points, width, height, data);
-    vertices3 = gridLayout(points, width, height, data);
+    [vertices, colors] = geoLayout(points, width, height, data);
+    [vertices2, colors2] = barsLayout(points, width, height, data);
+    [vertices3, colors3] = gridLayout(points, width, height, data);
 
     geometry.addAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.addAttribute( 'color', new THREE.Float32BufferAttribute(colors, 3));
 
     // Orientation of the layout.
     geometry.rotateZ(180 * (Math.PI / 180));
     geometry.rotateY(180 * (Math.PI / 180));
     geometry.translate(-350, 200, 0)
 
-    var material = new THREE.PointsMaterial({
+    material = new THREE.PointsMaterial({
         size: 2,
         sizeAttenuation: false,
         map: sprite,
         alphaTest: 0.5,
-        transparent: true
+        transparent: true,
+        vertexColors:colors
     });
 
-    material.color.setHSL(1.0, 0.3, 0.7);
-    
     mesh = new THREE.Points(geometry, material);
 
     scene.add(mesh);
@@ -144,7 +144,8 @@ function setupTween()
         geometry.addAttribute('position', new THREE.Float32BufferAttribute(current, 3));
         geometry.rotateZ(180 * (Math.PI / 180));
         geometry.rotateY(180 * (Math.PI / 180));
-        geometry.translate(-350, 200, 0)    
+        geometry.translate(-350, 200, 0)
+
     }
 
     TWEEN.removeAll();
@@ -152,24 +153,51 @@ function setupTween()
     // Copy the current vertices to create new target that wil
     // be modified by tween.
     var current = vertices.slice();
-    
+    var cur_color = colors.slice();
+
 	var tweenHead	= new TWEEN.Tween(current)
         .to(vertices2, userOpts.duration)
 		.delay(userOpts.delay)
 		.easing(TWEEN.Easing.Quadratic.In)
-        .onUpdate(update);
+        .onUpdate(update)
+        .onStart(()=>{
+            new TWEEN.Tween(cur_color)
+            .to(colors2, userOpts.duration)
+            .onUpdate(()=>{
+                geometry.addAttribute( 'color', new THREE.Float32BufferAttribute(cur_color, 3));
+            })
+            .start();   
+        })
         
 	var tweenBack	= new TWEEN.Tween(current)
         .to(vertices3, userOpts.duration)
 		.delay(userOpts.delay)
 		.easing(TWEEN.Easing.Quadratic.Out)
-        .onUpdate(update);
+        .onUpdate(update)
+        .onStart(()=>{
+            new TWEEN.Tween(cur_color)
+            .to(colors3, userOpts.duration)
+            .onUpdate(()=>{
+                geometry.addAttribute( 'color', new THREE.Float32BufferAttribute(cur_color, 3));
+            })
+            .start();   
+        
+        })
 
     var tweenBack2	= new TWEEN.Tween(current)
         .to(vertices, userOpts.duration)
 		.delay(userOpts.delay)
 		.easing(TWEEN.Easing.Quadratic.Out)
-        .onUpdate(update);
+        .onUpdate(update)
+        .onStart(()=>{
+            new TWEEN.Tween(cur_color)
+            .to(colors, userOpts.duration)
+            .onUpdate(()=>{
+                geometry.addAttribute( 'color', new THREE.Float32BufferAttribute(cur_color, 3));
+            })
+            .start();   
+        
+        })
         
     tweenHead.chain(tweenBack2);
     tweenBack2.chain(tweenBack);

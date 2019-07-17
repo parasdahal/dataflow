@@ -27,8 +27,43 @@ function wrapColorScale(scale) {
     };
 }
 
-function geoLayout(points, width, height, data) {
+function colorData(points, csvData, column) {
 
+    // Get unique elements from the given column to create color scale.
+    const unique = d3.set(
+        csvData.map(function (d) { return d[column]; })
+      ).values();
+
+    // console.log(unique);
+    // Create a color scale for each category.
+    var colorScale = d3.scaleOrdinal().domain(unique).range(
+        d3.range(0, 1, 1 / 6).concat(1).map(d3.scaleSequential(d3.interpolateCool))
+    );
+    // Change lightness of each dot.
+    var varyLightness = function (color) {
+        var hsl = d3.hsl(color);
+        hsl.l *= .1 + Math.random();
+        return hsl.toString()
+    };
+    // Convert to vector color.
+    function toVectorColor(colorStr) {
+        var rgb = d3.rgb(colorStr);
+        return [rgb.r / 255, rgb.g / 255, rgb.b / 255]
+    }
+
+    let colors = [];
+    // Create color for each datapoint.
+    points.forEach(function (d, i) {
+        color = toVectorColor((colorScale(csvData[i][column])))
+        colors.push(color[0], color[1], color[2]);
+    })
+    return colors;
+    
+}
+
+
+function geoLayout(points, width, height, data) {
+    var column = 'IncidentDistrict'
     // Find the extent (min and max) of latitude.
     // Reference: https://github.com/d3/d3-array#extent
     var latExtent = d3.extent(data, function (d) {
@@ -55,9 +90,12 @@ function geoLayout(points, width, height, data) {
     // Reference: https://github.com/d3/d3-geo#projection_fitExtent
     var projection = d3.geoMercator().fitSize([width, height], extentGeoJson);
 
+    
     // Store X and Y from the projection.
     let scale = 0.5;
     let vertices = [];
+    let colors = colorData(points, data, column)
+
     points.forEach(function (d, i) {
         var city = data[i];
         var location = projection([city.lon, city.lat]);
@@ -65,12 +103,12 @@ function geoLayout(points, width, height, data) {
         d.y = location[1]*scale;
         vertices.push(d.x,d.y, 0);
     })
-    return vertices;
+    return [vertices,colors];
 
 }
 
 function barsLayout(points, width, height, csvData) {
-    column = 'IncidentOutcome'
+    var column = 'IncidentOutcome'
     var pointWidth = width / 800;
     var pointMargin = 1;
     
@@ -115,7 +153,7 @@ function barsLayout(points, width, height, csvData) {
         return d[0]
     }).object(binsArray); 
 
-    // colorData(points, csvData, column);
+    
     // Iterate over data points.
     var arrangement = points.map(function (d, i) {
 
@@ -148,19 +186,21 @@ function barsLayout(points, width, height, csvData) {
     });
     
     let vertices = [];
+    let colors = colorData(points, csvData, column);
     let y_offset = height/5.0;
     let x_offset = width/5.0;
     // Apply x,y and color data for each point.
     arrangement.forEach(function (d, i) {
         Object.assign(points[i], d)
         vertices.push(d.x - x_offset, d.y - y_offset, 0);
+        
     });
-    return vertices;
+    return [vertices, colors];
 
 }
 
 function gridLayout(points,width,height,csvData){
-    
+    var column='Gender';
     var pointWidth = width / 400;
     var pointMargin = 3;
     
@@ -205,7 +245,6 @@ function gridLayout(points,width,height,csvData){
         return d[0]
     }).object(binsArray); 
 
-    // colorData(points, csvData, 0);
     // Iterate over data points.
     
     var arrangement = points.map(function (d, i) {
@@ -238,6 +277,7 @@ function gridLayout(points,width,height,csvData){
         }
     });
     let vertices = [];
+    let colors = colorData(points, csvData, column);
     let y_offset = height/5.0;
     let x_offset = width/5.0;
     // Apply x,y and color data for each point.
@@ -245,7 +285,7 @@ function gridLayout(points,width,height,csvData){
         Object.assign(points[i], d)
         vertices.push(d.x - x_offset, d.y - y_offset, 0);
     });
-    return vertices;
+    return [vertices,colors];
     
 }
 
